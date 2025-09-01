@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Bell Pepper Health Detector</title>
+  <title>🌿 Bell Pepper Health Detector</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
   <script src="script.js" defer></script>
   <style>
@@ -10,77 +10,63 @@
       margin: 0;
       font-family: Arial, sans-serif;
       color: #fff;
-      background: url("./green-leaves-bg.jpg") no-repeat center center fixed;
+      text-align: center;
+      background: url("./green-leaves-plant-aesthetic-5k-3840x2160-3559.jpg") no-repeat center center fixed;
       background-size: cover;
     }
 
     .container {
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      margin: 50px auto;
       border-radius: 15px;
-      padding: 25px;
-      margin: 60px auto;
-      max-width: 800px;
-      text-align: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      width: 80%;
+      max-width: 700px;
     }
 
     h1 {
-      color: #a8ff9c;
-      margin-bottom: 10px;
+      color: #adff2f;
     }
 
-    p {
-      font-size: 14px;
-      color: #ddd;
-    }
-
-    .buttons {
-      margin: 15px 0;
-    }
-
-    button, input[type="file"] {
-      background: #2e7d32;
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      background: #228b22;
       color: white;
       border: none;
       border-radius: 8px;
-      padding: 10px 16px;
-      margin: 6px;
       cursor: pointer;
-      font-size: 14px;
-      transition: background 0.3s;
     }
 
-    button:hover, input[type="file"]:hover {
-      background: #1b5e20;
+    button:hover {
+      background: #32cd32;
     }
 
-    #preview {
-      margin-top: 20px;
-      max-width: 300px;
-      border-radius: 8px;
-      border: 2px solid #4caf50;
+    #upload, #camera {
+      display: none;
     }
 
     #result {
       margin-top: 20px;
       font-size: 18px;
-      font-weight: bold;
-      color: #c8ffb0;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🌿 Bell Pepper Health Detector</h1>
-    <p>อัปโหลดรูปภาพจากไฟล์หรือถ่ายจากกล้อง เพื่อวิเคราะห์สุขภาพของพริกหวาน</p>
-
-    <div class="buttons">
-      <input type="file" id="upload" accept="image/*">
-      <button id="camera">📷 ถ่ายจากกล้อง</button>
-    </div>
-
-    <img id="preview" src="" alt="preview" style="display:none;">
-    <div id="result">รอการวิเคราะห์...</div>
+    <p>เลือกไฟล์จากเครื่อง หรือใช้กล้องเพื่อตรวจสุขภาพพริกหวาน</p>
+    
+    <input type="file" id="upload" accept="image/*">
+    <button onclick="document.getElementById('upload').click()">📂 เพิ่มรูปจากไฟล์</button>
+    
+    <input type="file" id="camera" accept="image/*" capture="environment">
+    <button onclick="document.getElementById('camera').click()">📷 ถ่ายจากกล้อง</button>
+    
+    <div id="result">รออัปโหลดภาพ...</div>
   </div>
 </body>
 </html>
