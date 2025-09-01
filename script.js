@@ -5,16 +5,28 @@ let model, metadata;
 let results = []; // {name, topLabel, topScore, all: [..]}
 
 // ===== Elements =====
-const uploadEl = document.getElementById("upload");
-const addBtn = document.getElementById("addBtn");
-const clearBtn = document.getElementById("clearBtn");
-const exportBtn = document.getElementById("exportBtn");
-const dropZone = document.getElementById("dropZone");
-const gallery = document.getElementById("gallery");
-const statusEl = document.getElementById("status");
+const uploadEl   = document.getElementById("upload");
+const addBtn     = document.getElementById("addBtn");
+const clearBtn   = document.getElementById("clearBtn");
+const exportBtn  = document.getElementById("exportBtn");
+const dropZone   = document.getElementById("dropZone");
+const gallery    = document.getElementById("gallery");
+const statusEl   = document.getElementById("status");
 const progressWrap = document.getElementById("progressWrap");
-const barEl = document.getElementById("bar");
+const barEl        = document.getElementById("bar");
 const progressText = document.getElementById("progressText");
+
+// Camera elements
+const cameraBtn = document.getElementById("cameraBtn");
+const camModal  = document.getElementById("camModal");
+const camClose  = document.getElementById("camClose");
+const camCapture= document.getElementById("camCapture");
+const camSwitch = document.getElementById("camSwitch");
+const video     = document.getElementById("video");
+const canvas    = document.getElementById("canvas");
+
+let stream = null;
+let useBackCamera = true; // เริ่มด้วยกล้องหลังถ้ามี
 
 // ===== Model loader =====
 async function loadModel() {
@@ -63,10 +75,9 @@ function createCard(src, name, rowsHtml) {
   return el;
 }
 
-async function predictImageFile(file) {
-  const url = URL.createObjectURL(file);
+async function predictImageSource(src, name = "camera.jpg") {
   const img = new Image();
-  img.src = url;
+  img.src = src;
   await new Promise((r) => (img.onload = r));
 
   const probs = await tf.tidy(async () => {
@@ -93,23 +104,25 @@ async function predictImageFile(file) {
       <td class="px-2 py-1">${(r.score*100).toFixed(2)}%</td>
     </tr>`).join("");
 
-  // render card
-  gallery.appendChild(createCard(url, file.name, rows));
+  gallery.appendChild(createCard(src, name, rows));
 
-  // store result
   results.push({
-    name: file.name,
+    name,
     topLabel: top.label,
     topScore: +(top.score*100).toFixed(2),
     all: labeled.map(x=>({label:x.label, score:+(x.score*100).toFixed(2)}))
   });
 }
 
+async function predictImageFile(file) {
+  const url = URL.createObjectURL(file);
+  await predictImageSource(url, file.name);
+}
+
 async function handleFiles(fileList) {
   if (!model) return;
   const files = Array.from(fileList).filter(f => f.type.startsWith("image/"));
   if (files.length === 0) return;
-
   let done = 0;
   for (const f of files) {
     await predictImageFile(f);
@@ -118,7 +131,7 @@ async function handleFiles(fileList) {
   }
 }
 
-// ===== Events =====
+// ===== File & DnD events =====
 addBtn.addEventListener("click", () => uploadEl.click());
 uploadEl.addEventListener("change", (e) => handleFiles(e.target.files));
 
@@ -128,10 +141,58 @@ uploadEl.addEventListener("change", (e) => handleFiles(e.target.files));
 ["dragleave","drop"].forEach(ev =>
   dropZone.addEventListener(ev, (e)=>{ e.preventDefault(); dropZone.classList.remove("ring-2","ring-brand-500"); })
 );
-dropZone.addEventListener("drop", (e) => {
-  handleFiles(e.dataTransfer.files);
+dropZone.addEventListener("drop", (e) => handleFiles(e.dataTransfer.files));
+
+// ===== Camera logic =====
+async function startCamera() {
+  stopCamera();
+  const constraints = {
+    video: { facingMode: useBackCamera ? { ideal: "environment" } : "user" },
+    audio: false
+  };
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+  } catch (err) {
+    alert("ไม่สามารถเปิดกล้องได้: " + err.message);
+  }
+}
+function stopCamera() {
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+}
+function openModal() {
+  camModal.classList.remove("hidden");
+  camModal.classList.add("flex");
+  startCamera();
+}
+function closeModal() {
+  camModal.classList.add("hidden");
+  camModal.classList.remove("flex");
+  stopCamera();
+}
+
+cameraBtn.addEventListener("click", openModal);
+camClose.addEventListener("click", closeModal);
+camSwitch.addEventListener("click", async () => {
+  useBackCamera = !useBackCamera; 
+  await startCamera();
 });
 
+camCapture.addEventListener("click", async () => {
+  if (!video.videoWidth) return;
+  // วาดเฟรมลง canvas แล้วทำนาย
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+  await predictImageSource(dataUrl, `camera-${Date.now()}.jpg`);
+});
+
+// ===== Utilities =====
 clearBtn.addEventListener("click", () => {
   results = [];
   gallery.innerHTML = "";
@@ -140,7 +201,6 @@ clearBtn.addEventListener("click", () => {
   progressWrap.classList.add("hidden");
 });
 
-// Export CSV (name, top_label, top_confidence, and top3)
 exportBtn.addEventListener("click", () => {
   if (results.length === 0) return;
   const header = ["filename","top_label","top_confidence(%)","top3"].join(",");
@@ -157,3 +217,6 @@ exportBtn.addEventListener("click", () => {
 });
 
 function escapeCsv(s){ return `"${String(s).replace(/"/g,'""')}"`; }
+
+// ปิดสตรีมเมื่อปิดแท็บ/เปลี่ยนหน้า
+window.addEventListener("beforeunload", stopCamera);
