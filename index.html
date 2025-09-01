@@ -25,41 +25,33 @@
   <script defer src="script.js"></script>
 
   <style>
-    /* พื้นหลังภาพ + เลเยอร์มืดให้อ่านง่าย */
-    .page-bg{
-      position:fixed; inset:0;
-      background:url("a-green-wall-with-many-leaves-and-flowers-photo.jpg") center/cover no-repeat fixed;
-      z-index:-2;
-    }
-    .page-overlay{
-      position:fixed; inset:0; z-index:-1;
-      background:linear-gradient(to bottom right, rgba(0,0,0,.35), rgba(0,0,0,.45));
-      backdrop-filter:saturate(1.1) blur(0.5px);
+    /* ใช้ภาพพื้นหลังจาก root เดียวกับ index.html */
+    html,body { height: 100%; }
+    body{
+      margin:0;
+      color:#fff;
+      background: url("./a-green-wall-with-many-leaves-and-flowers-photo.jpg")
+                 center/cover no-repeat fixed;
     }
     @media (prefers-color-scheme: dark){ :root{ color-scheme: dark; } }
   </style>
 </head>
-<body class="min-h-full text-brand-50">
-  <!-- background layers -->
-  <div class="page-bg"></div>
-  <div class="page-overlay"></div>
-
+<body class="min-h-full">
   <header class="py-6">
     <div class="mx-auto max-w-5xl px-4">
       <h1 class="text-2xl md:text-3xl font-semibold drop-shadow">
         🫑 Bell Pepper Health Detector
       </h1>
-      <p class="mt-1 text-sm text-brand-50/80 drop-shadow">
+      <p class="mt-1 text-sm text-white/80 drop-shadow">
         เลือกไฟล์หลายรูป • ลาก-วาง • ถ่ายจากกล้อง • ส่งออกผล CSV
       </p>
     </div>
   </header>
 
   <main class="mx-auto max-w-5xl px-4 pb-16">
-    <!-- Glass card -->
-    <div class="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-md shadow-xl p-5">
-
-      <!-- Control bar -->
+    <!-- การ์ดแบบ glass ให้ตัวอักษรอ่านง่ายบนพื้นหลัง -->
+    <div class="rounded-2xl border border-white/20 bg-black/35 backdrop-blur-md shadow-xl p-5">
+      <!-- แถบควบคุม -->
       <div class="flex flex-wrap gap-3 items-center">
         <button id="addBtn"
           class="px-3 py-2 rounded-lg border border-white/25 bg-white/10 hover:bg-white/20">
@@ -77,51 +69,51 @@
           class="px-3 py-2 rounded-lg border border-white/25 bg-white/10 hover:bg-white/20">
           ส่งออกผล (.csv)
         </button>
-        <div id="status" class="ml-auto text-sm text-brand-50/80">กำลังโหลดโมเดล…</div>
+        <div id="status" class="ml-auto text-sm text-white/80">กำลังโหลดโมเดล…</div>
       </div>
 
-      <!-- Hidden file input -->
+      <!-- input ไฟล์ (ซ่อน) -->
       <input id="upload" type="file" accept="image/*" multiple class="hidden" />
 
-      <!-- Drop zone -->
+      <!-- โซนลาก-วาง -->
       <div id="dropZone"
-           class="mt-4 rounded-xl border-2 border-dashed border-white/30 p-6 text-center
+           class="mt-4 rounded-xl border-2 border-dashed border-white/40 p-6 text-center
                   bg-white/5 hover:bg-white/10 transition">
         <p class="font-medium">ลาก-วางภาพที่นี่ หรือกด “เพิ่มรูปจากไฟล์” หรือ “ถ่ายจากกล้อง”</p>
-        <p class="text-xs text-brand-50/80">รองรับหลายไฟล์</p>
+        <p class="text-xs text-white/80">รองรับหลายไฟล์</p>
       </div>
 
-      <!-- Progress -->
+      <!-- แถบสถานะ -->
       <div id="progressWrap" class="hidden mt-4">
         <div class="h-2 w-full rounded-full bg-white/20 overflow-hidden">
           <div id="bar" class="h-2 w-0 bg-brand-500 transition-all"></div>
         </div>
-        <p id="progressText" class="mt-2 text-xs text-brand-50/80">กำลังวิเคราะห์…</p>
+        <p id="progressText" class="mt-2 text-xs text-white/80">กำลังวิเคราะห์…</p>
       </div>
 
-      <!-- Gallery + results -->
+      <!-- แกลเลอรีผลลัพธ์ -->
       <div id="gallery" class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
     </div>
 
-    <p class="mt-6 text-xs text-brand-50/80">
+    <p class="mt-6 text-xs text-white/85 drop-shadow">
       * การทำนายทำบนอุปกรณ์ของคุณ ไฟล์ไม่ถูกอัปโหลดขึ้นเซิร์ฟเวอร์
     </p>
   </main>
 
-  <!-- Camera modal -->
+  <!-- กล้องถ่ายภาพ -->
   <div id="camModal" class="fixed inset-0 hidden items-center justify-center bg-black/60 p-4 z-50">
-    <div class="w-full max-w-md rounded-2xl overflow-hidden border border-white/15 bg-black/60 backdrop-blur-md">
+    <div class="w-full max-w-md rounded-2xl overflow-hidden border border-white/20 bg-black/70 backdrop-blur-md">
       <div class="p-4 border-b border-white/10 flex items-center justify-between">
         <h3 class="font-semibold">ถ่ายภาพจากกล้อง</h3>
-        <button id="camClose" class="text-sm px-2 py-1 rounded border border-white/20 bg-white/10 hover:bg-white/20">ปิด</button>
+        <button id="camClose" class="text-sm px-2 py-1 rounded border border-white/25 bg-white/10 hover:bg-white/20">ปิด</button>
       </div>
       <div class="p-4 space-y-3">
         <video id="video" autoplay playsinline class="w-full rounded-lg bg-black/30 aspect-video"></video>
         <div class="flex gap-3">
-          <button id="camCapture" class="px-3 py-2 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20">
+          <button id="camCapture" class="px-3 py-2 rounded-lg border border-white/25 bg-white/10 hover:bg-white/20">
             ถ่ายภาพ
           </button>
-          <button id="camSwitch" class="px-3 py-2 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20">
+          <button id="camSwitch" class="px-3 py-2 rounded-lg border border-white/25 bg-white/10 hover:bg-white/20">
             สลับกล้อง (หน้า/หลัง)
           </button>
         </div>
