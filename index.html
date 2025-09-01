@@ -1,14 +1,116 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
-  <meta charset="UTF-8">
-  <title>Teachable Machine - Bell Pepper</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bell Pepper Health Detector</title>
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50:  "#eefdf3",
+              100: "#d7f7e2",
+              200: "#b2efcb",
+              300: "#83e2ae",
+              400: "#4fd18e",
+              500: "#22c06b",   /* เขียวหลัก */
+              600: "#16a457",
+              700: "#117f44",
+              800: "#0d6236",
+              900: "#0a4e2b",
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- TensorFlow.js -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-  <script src="script.js" defer></script>
+  <!-- App -->
+  <script defer src="script.js"></script>
+
+  <style>
+    @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }
+    /* ลายใบไม้พื้นหลังแบบ SVG (จาง ๆ) */
+    .leaf-bg {
+      background-image:
+        radial-gradient(1200px 800px at 80% -10%, rgba(34,192,107,.15), transparent 60%),
+        radial-gradient(900px 600px at -10% 100%, rgba(34,192,107,.10), transparent 60%),
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 100 100" fill="none" stroke="rgba(34,192,107,0.08)" stroke-width="1"><path d="M20 80 C35 55, 45 35, 50 20 C55 35, 65 55, 80 80"/><path d="M50 20 C47 32, 40 45, 35 55"/><path d="M50 20 C53 32, 60 45, 65 55"/></svg>');
+      background-size: auto, auto, 240px 240px;
+    }
+  </style>
 </head>
-<body>
-  <h1>Bell Pepper Classifier</h1>
-  <input type="file" id="upload" accept="image/*">
-  <div id="result"></div>
+<body class="min-h-full leaf-bg bg-brand-50/40 text-brand-900 dark:bg-brand-900 dark:text-brand-50">
+  <header class="py-6">
+    <div class="mx-auto max-w-3xl px-4">
+      <h1 class="text-2xl md:text-3xl font-semibold tracking-tight flex items-center gap-2">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-500/15 ring-1 ring-brand-500/30">
+          <!-- ไอคอนใบไม้ -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 21c8 0 14-6 14-14V3h-4C7 3 3 7 3 15v6h2z"/><path d="M3 15c4 0 8-4 8-8"/></svg>
+        </span>
+        Green Pepper Health Detector
+      </h1>
+      <p class="mt-1 text-sm text-brand-800/70 dark:text-brand-100/70">Teachable Machine + TensorFlow.js</p>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-3xl px-4 pb-16">
+    <div class="rounded-2xl border border-brand-600/15 bg-white/80 backdrop-blur-md shadow-lg p-5 dark:bg-brand-900/60 dark:border-brand-400/15">
+      <!-- Upload zone -->
+      <label for="upload"
+             class="block rounded-xl border-2 border-dashed border-brand-600/30 p-6 text-center cursor-pointer hover:bg-brand-100/40 dark:hover:bg-brand-800/40 transition">
+        <div class="flex flex-col items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-brand-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h10a4 4 0 000-8h-1.26A8 8 0 104 15h-.999z" /></svg>
+          <div>
+            <p class="font-medium text-brand-800">ลากรูปมาวาง หรือคลิกเพื่อเลือกไฟล์</p>
+            <p class="text-xs text-brand-800/70">รองรับ .jpg .png และภาพจากกล้อง</p>
+          </div>
+          <input id="upload" type="file" accept="image/*" capture="environment" class="hidden" />
+        </div>
+      </label>
+
+      <!-- Actions -->
+      <div class="mt-4 flex items-center gap-3">
+        <button id="openCamera" class="px-3 py-2 rounded-lg border border-brand-600/30 hover:bg-brand-100/50 dark:hover:bg-brand-800/50">
+          ใช้กล้องถ่ายภาพ
+        </button>
+        <button id="clearBtn" class="px-3 py-2 rounded-lg border border-brand-600/30 hover:bg-brand-100/50 dark:hover:bg-brand-800/50">
+          ล้างผลลัพธ์
+        </button>
+        <div id="status" class="ml-auto text-sm text-brand-800/70 dark:text-brand-100/70">กำลังโหลดโมเดล…</div>
+      </div>
+
+      <!-- Preview + Results -->
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <div class="aspect-square overflow-hidden rounded-xl border border-brand-600/20 bg-brand-100/40 dark:bg-brand-800/40">
+            <img id="preview" alt="preview" class="h-full w-full object-contain hidden" />
+          </div>
+        </div>
+
+        <div>
+          <div id="progress" class="hidden">
+            <div class="h-2 w-full rounded-full bg-brand-100/70 dark:bg-brand-800/70 overflow-hidden">
+              <div id="bar" class="h-2 w-0 bg-brand-500 transition-all"></div>
+            </div>
+            <p class="mt-2 text-xs text-brand-800/70">กำลังวิเคราะห์…</p>
+          </div>
+
+          <div id="result" class="text-sm mt-2 space-y-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="mt-6 text-xs text-brand-800/70 dark:text-brand-100/70">
+      * ภาพไม่ถูกส่งขึ้นเซิร์ฟเวอร์ การทำนายทำบนเบราว์เซอร์ของคุณ
+    </p>
+  </main>
 </body>
 </html>
