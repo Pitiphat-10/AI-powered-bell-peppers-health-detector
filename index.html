@@ -7,85 +7,83 @@
 
   <!-- Tailwind (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: { brand: {
+          50:"#eefdf3",100:"#d7f7e2",200:"#b2efcb",300:"#83e2ae",
+          400:"#4fd18e",500:"#22c06b",600:"#16a457",700:"#117f44",
+          800:"#0d6236",900:"#0a4e2b"
+        }}
+      }}
+    }
+  </script>
 
   <!-- TensorFlow.js -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-
   <!-- App -->
   <script defer src="script.js"></script>
 
   <style>
-    /* ปรับ dark mode อัตโนมัติ */
-    @media (prefers-color-scheme: dark) {
-      :root { color-scheme: dark; }
-    }
+    @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }
+    .leaf-bg{background-image:
+      radial-gradient(1200px 800px at 80% -10%, rgba(34,192,107,.15), transparent 60%),
+      radial-gradient(900px 600px at -10% 100%, rgba(34,192,107,.10), transparent 60%)}
   </style>
 </head>
-<body class="min-h-full bg-gradient-to-b from-slate-50 to-slate-100 text-slate-800 dark:from-slate-900 dark:to-slate-950 dark:text-slate-100">
+<body class="min-h-full leaf-bg bg-brand-50/40 text-brand-900 dark:bg-brand-900 dark:text-brand-50">
   <header class="py-6">
-    <div class="mx-auto max-w-3xl px-4">
-      <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">
-        🫑 AI-powered Bell Pepper Health Detector
-      </h1>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Teachable Machine + TensorFlow.js</p>
+    <div class="mx-auto max-w-5xl px-4">
+      <h1 class="text-2xl md:text-3xl font-semibold">🫑 Green Pepper Health Detector</h1>
+      <p class="mt-1 text-sm text-brand-800/70 dark:text-brand-100/70">
+        เพิ่มรูปจากไฟล์ในเครื่องได้หลายรูป / ลาก-วาง / ส่งออกผลเป็น CSV
+      </p>
     </div>
   </header>
 
-  <main class="mx-auto max-w-3xl px-4 pb-16">
-    <!-- Card -->
-    <div class="rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-md shadow-lg p-5 dark:bg-slate-900/70 dark:border-slate-800">
-      <!-- Upload zone -->
-      <label for="upload"
-             class="block rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 p-6 text-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-        <div class="flex flex-col items-center gap-3">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h10a4 4 0 000-8h-1.26A8 8 0 104 15h-.999z" /></svg>
-          <div>
-            <p class="font-medium">ลากรูปมาวาง หรือคลิกเพื่อเลือกไฟล์</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400">รองรับ .jpg .png และภาพจากกล้อง</p>
-          </div>
-          <input id="upload" type="file" accept="image/*" capture="environment" class="hidden" />
-        </div>
-      </label>
+  <main class="mx-auto max-w-5xl px-4 pb-16">
+    <div class="rounded-2xl border border-brand-600/15 bg-white/80 backdrop-blur-md shadow-lg p-5 dark:bg-brand-900/60 dark:border-brand-400/15">
 
-      <!-- Actions -->
-      <div class="mt-4 flex items-center gap-3">
-        <button id="openCamera" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
-          ใช้กล้องถ่ายภาพ
+      <!-- Control bar -->
+      <div class="flex flex-wrap gap-3 items-center">
+        <button id="addBtn" class="px-3 py-2 rounded-lg border border-brand-600/30 hover:bg-brand-100/50 dark:hover:bg-brand-800/50">
+          เพิ่มรูปจากเครื่อง
         </button>
-        <button id="clearBtn" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
-          ล้างผลลัพธ์
+        <button id="clearBtn" class="px-3 py-2 rounded-lg border border-brand-600/30 hover:bg-brand-100/50 dark:hover:bg-brand-800/50">
+          ล้างทั้งหมด
         </button>
-        <div id="status" class="ml-auto text-sm text-slate-500 dark:text-slate-400">กำลังโหลดโมเดล…</div>
+        <button id="exportBtn" class="px-3 py-2 rounded-lg border border-brand-600/30 hover:bg-brand-100/50 dark:hover:bg-brand-800/50">
+          ส่งออกผล (.csv)
+        </button>
+        <div id="status" class="ml-auto text-sm text-brand-800/70 dark:text-brand-100/70">กำลังโหลดโมเดล…</div>
       </div>
 
-      <!-- Preview + Results -->
-      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Preview -->
-        <div>
-          <div class="aspect-square overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800">
-            <img id="preview" alt="preview" class="h-full w-full object-contain hidden" />
-          </div>
-        </div>
+      <!-- Hidden file input -->
+      <input id="upload" type="file" accept="image/*" multiple class="hidden" />
 
-        <!-- Results -->
-        <div>
-          <div id="progress" class="hidden">
-            <div class="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-              <div id="bar" class="h-2 w-0 bg-emerald-500 transition-all"></div>
-            </div>
-            <p class="mt-2 text-xs text-slate-500">กำลังวิเคราะห์…</p>
-          </div>
-
-          <div id="result" class="text-sm mt-2 space-y-3"></div>
-        </div>
+      <!-- Drop zone -->
+      <div id="dropZone"
+           class="mt-4 rounded-xl border-2 border-dashed border-brand-600/30 p-6 text-center
+                  hover:bg-brand-100/40 dark:hover:bg-brand-800/40 transition">
+        <p class="font-medium text-brand-800">ลาก-วางภาพที่นี่ หรือกด “เพิ่มรูปจากเครื่อง”</p>
+        <p class="text-xs text-brand-800/70">รองรับหลายไฟล์</p>
       </div>
+
+      <!-- Progress -->
+      <div id="progressWrap" class="hidden mt-4">
+        <div class="h-2 w-full rounded-full bg-brand-100/70 dark:bg-brand-800/70 overflow-hidden">
+          <div id="bar" class="h-2 w-0 bg-brand-500 transition-all"></div>
+        </div>
+        <p id="progressText" class="mt-2 text-xs text-brand-800/70">กำลังวิเคราะห์…</p>
+      </div>
+
+      <!-- Gallery + results -->
+      <div id="gallery" class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
     </div>
 
-    <!-- Footer -->
-    <p class="mt-6 text-xs text-slate-500 dark:text-slate-400">
-      * ภาพไม่ถูกส่งขึ้นเซิร์ฟเวอร์ การทำนายทำบนเบราว์เซอร์ของคุณ
+    <p class="mt-6 text-xs text-brand-800/70 dark:text-brand-100/70">
+      * การทำนายทำบนอุปกรณ์ของคุณ ไฟล์ไม่ถูกอัปโหลดขึ้นเซิร์ฟเวอร์
     </p>
   </main>
 </body>
 </html>
-
