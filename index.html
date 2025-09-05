@@ -1,114 +1,52 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Green Pepper Health Detector</title>
-
-  <!-- Tailwind (CDN) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: { extend: {
-        colors: { brand: {
-          50:"#eefdf3",100:"#d7f7e2",200:"#b2efcb",300:"#83e2ae",
-          400:"#4fd18e",500:"#22c06b",600:"#16a457",700:"#117f44",
-          800:"#0d6236",900:"#0a4e2b"
-        }}
-      }}
-    }
-  </script>
-
-  <!-- TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-  <!-- App -->
-  <script defer src="script.js"></script>
-
-  <style>
-    @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }
-    .leaf-bg{background-image:
-      radial-gradient(1200px 800px at 80% -10%, rgba(34,192,107,.15), transparent 60%),
-      radial-gradient(900px 600px at -10% 100%, rgba(34,192,107,.10), transparent 60%)}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Pepper Health Detector</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="script.js" defer></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: white;
+            background: url('green-leaves-plant-aesthetic-5k-3840x2160-3559.jpg') no-repeat center center fixed;
+            background-size: cover;
+            text-align: center;
+            padding-top: 10%;
+        }
+        #status {
+            margin-top: 20px;
+            color: #fff;
+            font-size: 18px;
+        }
+        button, input[type="file"] {
+            padding: 10px 20px;
+            margin: 10px;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover, input[type="file"]:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            color: white;
+        }
+    </style>
 </head>
-<body class="min-h-full leaf-bg bg-brand-50/40 text-brand-900 dark:bg-brand-900 dark:text-brand-50">
-  <header class="py-6">
-    <div class="mx-auto max-w-5xl px-4">
-      <h1 class="text-2xl md:text-3xl font-semibold">🫑 Green Pepper Health Detector</h1>
-      <p class="mt-1 text-sm text-brand-800/70 dark:text-brand-100/70">
-        เลือกไฟล์หลายรูป • ลาก-วาง • ถ่ายจากกล้อง • ส่งออกผล CSV
-      </p>
-    </div>
-  </header>
-
-  <main class="mx-auto max-w-5xl px-4 pb-16">
-    <div class="rounded-2xl border border-brand-600/15 bg-white/80 backdrop-blur-md shadow-lg p-5 dark:bg-brand-900/60 dark:border-brand-400/15">
-
-      <!-- Control bar -->
-      <div class="flex flex-wrap gap-3 items-center">
-        <button id="addBtn" class="px-3 py-2 rounded-lg border border-brand-600/30 hover:bg-brand-100/50 dark:hover:bg-brand-800/50">
-          เพิ่มรูปจากไฟล์
-        </button>
-        <button id="cameraBtn" class="px-3 py-2 rounded-lg border border-brand-600/30 hover:bg-brand-100/50 dark:hover-bg-brand-800/50">
-          ถ่ายจากกล้อง
-        </button>
-        <button id="clearBtn" class="px-3 py-2 rounded-lg border border-brand-600/30 hover:bg-brand-100/50 dark:hover:bg-brand-800/50">
-          ล้างทั้งหมด
-        </button>
-        <button id="exportBtn" class="px-3 py-2 rounded-lg border border-brand-600/30 hover:bg-brand-100/50 dark:hover:bg-brand-800/50">
-          ส่งออกผล (.csv)
-        </button>
-        <div id="status" class="ml-auto text-sm text-brand-800/70 dark:text-brand-100/70">กำลังโหลดโมเดล…</div>
-      </div>
-
-      <!-- Hidden file input -->
-      <input id="upload" type="file" accept="image/*" multiple class="hidden" />
-
-      <!-- Drop zone -->
-      <div id="dropZone"
-           class="mt-4 rounded-xl border-2 border-dashed border-brand-600/30 p-6 text-center
-                  hover:bg-brand-100/40 dark:hover:bg-brand-800/40 transition">
-        <p class="font-medium text-brand-800">ลาก-วางภาพที่นี่ หรือกด “เพิ่มรูปจากไฟล์” หรือ “ถ่ายจากกล้อง”</p>
-        <p class="text-xs text-brand-800/70">รองรับหลายไฟล์</p>
-      </div>
-
-      <!-- Progress -->
-      <div id="progressWrap" class="hidden mt-4">
-        <div class="h-2 w-full rounded-full bg-brand-100/70 dark:bg-brand-800/70 overflow-hidden">
-          <div id="bar" class="h-2 w-0 bg-brand-500 transition-all"></div>
-        </div>
-        <p id="progressText" class="mt-2 text-xs text-brand-800/70">กำลังวิเคราะห์…</p>
-      </div>
-
-      <!-- Gallery + results -->
-      <div id="gallery" class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
-    </div>
-
-    <p class="mt-6 text-xs text-brand-800/70 dark:text-brand-100/70">
-      * การทำนายทำบนอุปกรณ์ของคุณ ไฟล์ไม่ถูกอัปโหลดขึ้นเซิร์ฟเวอร์
-    </p>
-  </main>
-
-  <!-- Camera modal -->
-  <div id="camModal" class="fixed inset-0 hidden items-center justify-center bg-black/50 p-4 z-50">
-    <div class="w-full max-w-md rounded-2xl overflow-hidden border border-brand-600/20 bg-white dark:bg-brand-900">
-      <div class="p-4 border-b border-brand-600/20 flex items-center justify-between">
-        <h3 class="font-semibold">ถ่ายภาพจากกล้อง</h3>
-        <button id="camClose" class="text-sm px-2 py-1 rounded border border-brand-600/30 hover:bg-brand-100/50 dark:hover:bg-brand-800/50">ปิด</button>
-      </div>
-      <div class="p-4 space-y-3">
-        <video id="video" autoplay playsinline class="w-full rounded-lg bg-black/30 aspect-video"></video>
-        <div class="flex gap-3">
-          <button id="camCapture" class="px-3 py-2 rounded-lg border border-brand-600/30 hover:bg-brand-100/50 dark:hover:bg-brand-800/50">
-            ถ่ายภาพ
-          </button>
-          <button id="camSwitch" class="px-3 py-2 rounded-lg border border-brand-600/30 hover:bg-brand-100/50 dark:hover:bg-brand-800/50">
-            สลับกล้อง (หน้า/หลัง)
-          </button>
-        </div>
-        <canvas id="canvas" class="hidden"></canvas>
-      </div>
-    </div>
-  </div>
+<body>
+    <h1>Green Pepper Health Detector</h1>
+    <p>เลือกไฟล์ภาพหรือถ่ายจากกล้องเพื่อใช้ตรวจสุขภาพพริกหวาน</p>
+    <input type="file" id="upload" accept="image/*">
+    <br>
+    <button id="camera">ถ่ายจากกล้อง</button>
+    <div id="status">กำลังโหลดโมเดล...</div>
+    <div id="result"></div>
 </body>
 </html>
