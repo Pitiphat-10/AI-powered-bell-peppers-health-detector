@@ -1,146 +1,109 @@
-/* ========== Bell Pepper Health Detector – Enhanced script.js ========== */
-const MODEL_URL = "model/model.json";
-const METADATA_URL = "model/metadata.json";
-
 let model, metadata;
+const modelURL = "model/model.json";
+const metadataURL = "model/metadata.json";
 
-/* ---------- 1) Load model once ---------- */
+const uploadEl = document.getElementById("upload");
+const previewEl = document.getElementById("preview");
+const resultEl = document.getElementById("result");
+const statusEl = document.getElementById("status");
+const progressEl = document.getElementById("progress");
+const barEl = document.getElementById("bar");
+const clearBtn = document.getElementById("clearBtn");
+const openCameraBtn = document.getElementById("openCamera");
+
 async function loadModel() {
   try {
-    setStatus("กำลังโหลดโมเดล…"); // แสดงสถานะว่าโมเดลกำลังโหลด
-    model = await tf.loadLayersModel(MODEL_URL);
-    const metaRes = await fetch(METADATA_URL);
+    statusEl.textContent = "กำลังโหลดโมเดล…";
+    model = await tf.loadLayersModel(modelURL);
+    const metaRes = await fetch(metadataURL);
     metadata = await metaRes.json();
-    setStatus("พร้อมใช้งาน");
-  } catch (err) {
-    console.error(err);
-    setStatus("โหลดโมเดลไม่สำเร็จ");
+    statusEl.textContent = "พร้อมใช้งาน";
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = "โหลดโมเดลไม่สำเร็จ";
   }
 }
+loadModel();
 
-/* ---------- 2) DOM helpers ---------- */
-const uploadInput = document.getElementById("upload");
-const cameraInput = document.getElementById("camera");
-const resultEl = document.getElementById("result");
-
-function setStatus(text) {
-  resultEl.innerHTML = `<div style="opacity:.9">${text}</div>`;
+function setProgress(pct) {
+  progressEl.classList.remove("hidden");
+  barEl.style.width = `${pct}%`;
 }
 
-function clearResult() {
-  resultEl.innerHTML = "";
-}
+async function predictFile(file) {
+  if (!model) return;
+  // preview
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
+  previewEl.src = img.src;
+  previewEl.classList.remove("hidden");
 
-function makePreview(src, filename = "") {
-  const wrap = document.createElement("div");
-  wrap.style.marginTop = "16px";
-  wrap.style.padding = "12px";
-  wrap.style.borderRadius = "10px";
-  wrap.style.background = "rgba(255,255,255,0.08)";
-  wrap.style.border = "1px solid rgba(255,255,255,0.15)";
+  await new Promise((res) => (img.onload = res));
 
-  const img = document.createElement("img");
-  img.src = src;
-  img.alt = filename || "preview";
-  img.style.maxWidth = "320px";
-  img.style.borderRadius = "8px";
-  img.style.display = "block";
-  img.style.margin = "0 auto 10px auto";
-  wrap.appendChild(img);
+  setProgress(20);
 
-  const label = document.createElement("div");
-  label.style.fontSize = "12px";
-  label.style.opacity = "0.85";
-  label.textContent = filename || "ภาพจากกล้อง";
-  wrap.appendChild(label);
-
-  const table = document.createElement("table");
-  table.style.width = "100%";
-  table.style.marginTop = "8px";
-  table.style.borderCollapse = "collapse";
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th style="text-align:left;padding:6px;border-bottom:1px solid rgba(255,255,255,.15)">Prediction</th>
-        <th style="text-align:right;padding:6px;border-bottom:1px solid rgba(255,255,255,.15)">Confidence</th>
-      </tr>
-    </thead>
-    <tbody></tbody>`;
-  wrap.appendChild(table);
-
-  resultEl.appendChild(wrap);
-  return { imgEl: img, tbodyEl: table.querySelector("tbody") };
-}
-
-function renderTopK(tbodyEl, labeled, k = 3) {
-  const rows = labeled.slice(0, k).map((r, i) => {
-    const mark = i === 0 ? "✅ " : "";
-    return `
-      <tr>
-        <td style="padding:6px">${mark}${r.label}</td>
-        <td style="padding:6px;text-align:right">${(r.score * 100).toFixed(2)}%</td>
-      </tr>`;
-  }).join("");
-  tbodyEl.innerHTML = rows;
-}
-
-/* ---------- 3) Core prediction ---------- */
-async function predictFromImageElement(imgEl) {
-  if (!model) {
-    setStatus("โมเดลยังไม่พร้อม โปรดรอสักครู่…");
-    return;
-  }
-  const probs = await tf.tidy(async () => {
-    const t = tf.browser.fromPixels(imgEl)
-      .resizeNearestNeighbor([224, 224]) // ปรับตามขนาดที่เทรน
+  const pred = await tf.tidy(async () => {
+    const input = tf.browser.fromPixels(img)
+      .resizeNearestNeighbor([224, 224])   // ปรับตามที่เทรน
       .toFloat()
       .div(255)
-      .expandDims();                     // [1, 224, 224, 3]
-    const p = model.predict(t);
+      .expandDims();                       // [1, 224, 224, 3]
+    setProgress(60);
+    const p = model.predict(input);
     const data = await p.data();
     return Array.from(data);
   });
 
-  const labeled = probs
-    .map((v, i) => ({
-      label: (metadata?.labels && metadata.labels[i]) ?? `Class ${i}`,
-      score: v
-    }))
-    .sort((a, b) => b.score - a.score);
+  setProgress(100);
+  setTimeout(() => progressEl.classList.add("hidden"), 400);
 
-  return labeled;
-}
-
-/* ---------- 4) Handle File(s) ---------- */
-async function handleFiles(fileList) {
-  if (!fileList || fileList.length === 0) return;
-  clearResult();
-
-  // รองรับหลายไฟล์ ถ้าในอนาคตคุณเพิ่ม attribute multiple ให้ input
-  for (const file of fileList) {
-    if (!file.type.startsWith("image/")) continue;
-
-    const url = URL.createObjectURL(file);
-    const { imgEl, tbodyEl } = makePreview(url, file.name);
-
-    await new Promise(res => (imgEl.onload = res));
-    const labeled = await predictFromImageElement(imgEl);
-    renderTopK(tbodyEl, labeled, 3);
+  // Top-k
+  const withIdx = pred.map((v, i) => ({ i, v }));
+  withIdx.sort((a, b) => b.v - a.v);
+  const k = Math.min(3, withIdx.length);
+  const rows = [];
+  for (let j = 0; j < k; j++) {
+    const { i, v } = withIdx[j];
+    const label = (metadata?.labels && metadata.labels[i]) ?? `Class ${i}`;
+    rows.push(`<tr>
+      <td class="px-3 py-2">${j === 0 ? "✅" : ""}</td>
+      <td class="px-3 py-2 font-medium">${label}</td>
+      <td class="px-3 py-2">${(v * 100).toFixed(2)}%</td>
+    </tr>`);
   }
+
+  resultEl.innerHTML = `
+    <div class="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 dark:bg-slate-800/60">
+          <tr>
+            <th class="text-left px-3 py-2 w-8"> </th>
+            <th class="text-left px-3 py-2">Prediction</th>
+            <th class="text-left px-3 py-2">Confidence</th>
+          </tr>
+        </thead>
+        <tbody>${rows.join("")}</tbody>
+      </table>
+    </div>
+  `;
 }
 
-/* ---------- 5) Handle Camera (capture input) ---------- */
-async function handleCamera(fileList) {
-  // บนมือถือ/เบราว์เซอร์ที่รองรับ จะได้ไฟล์ภาพจากกล้อง
-  await handleFiles(fileList);
-}
+uploadEl.addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if (file) predictFile(file);
+});
 
-/* ---------- 6) Event bindings ---------- */
-uploadInput.addEventListener("change", (e) => handleFiles(e.target.files));
-cameraInput.addEventListener("change", (e) => handleCamera(e.target.files));
+openCameraBtn.addEventListener("click", () => {
+  // เปิดไฟล์จากกล้อง (mobile จะเปิด Camera)
+  uploadEl.setAttribute("capture", "environment");
+  uploadEl.click();
+});
 
-/* ---------- 7) Optional: drag & drop (ถ้าอยากใช้งาน เพิ่ม container แล้วผูกตรงนี้) ---------- */
-// ตัวอย่างการใช้งานในอนาคต:
-// const dropZone = document.getElementById("dropZone");
-// ["dragenter","dragover"].forEach(ev => dropZone?.addEventListener(ev, e => { e.preventDefault(); }));
-// dropZone?.addEventListener("drop", e => { e.preventDefault(); handleFiles(e.dataTransfer.files); });
+clearBtn.addEventListener("click", () => {
+  uploadEl.value = "";
+  previewEl.src = "";
+  previewEl.classList.add("hidden");
+  resultEl.innerHTML = "";
+  setProgress(0);
+  progressEl.classList.add("hidden");
+});
