@@ -1,14 +1,13 @@
 /* ========== Bell Pepper Health Detector – Enhanced script.js ========== */
-
 const MODEL_URL = "model/model.json";
 const METADATA_URL = "model/metadata.json";
 
 let model, metadata;
 
 /* ---------- 1) Load model once ---------- */
-(async () => {
+async function loadModel() {
   try {
-    setStatus("กำลังโหลดโมเดล…");
+    setStatus("กำลังโหลดโมเดล…"); // แสดงสถานะว่าโมเดลกำลังโหลด
     model = await tf.loadLayersModel(MODEL_URL);
     const metaRes = await fetch(METADATA_URL);
     metadata = await metaRes.json();
@@ -17,7 +16,7 @@ let model, metadata;
     console.error(err);
     setStatus("โหลดโมเดลไม่สำเร็จ");
   }
-})();
+}
 
 /* ---------- 2) DOM helpers ---------- */
 const uploadInput = document.getElementById("upload");
